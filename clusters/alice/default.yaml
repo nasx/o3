@@ -1,0 +1,262 @@
+---
+all:
+  children:
+    alice:
+      hosts:
+        cp0:
+          api_node_type: master
+          ip: 172.16.10.132
+          node_selector:
+            kubernetes.io/hostname: cp0.warden.lab.uc2.io
+        cp1:
+          api_node_type: master
+          ip: 172.16.10.133
+          node_selector:
+            kubernetes.io/hostname: cp1.warden.lab.uc2.io
+        cp2:
+          api_node_type: master
+          ip: 172.16.10.134
+          node_selector:
+            kubernetes.io/hostname: cp2.warden.lab.uc2.io
+        in0:
+          api_node_type: worker
+          ip: 172.16.10.141
+          node_selector:
+            kubernetes.io/hostname: cp0.warden.lab.uc2.io
+        in1:
+          api_node_type: worker
+          ip: 172.16.10.142
+          node_selector:
+            kubernetes.io/hostname: cp1.warden.lab.uc2.io
+        in2:
+          api_node_type: worker
+          ip: 172.16.10.143
+          node_selector:
+            kubernetes.io/hostname: cp2.warden.lab.uc2.io
+    bastion:
+      hosts:
+        bastion:
+          ansible_host: 172.16.10.172
+          artifact_url: http://bastion.alice.lab.uc2.io:8080
+          document_root: /var/www/html
+          httpd_port: 8080
+          ip: 172.16.10.172
+  vars:
+    acm:
+      base_dns_domain: lab.uc2.io
+      base_domain: alice.lab.uc2.io
+      # cluster_image_set: img4.18.18-x86-64-appsub
+      cluster_image_set: img4.19.1-x86-64-appsub
+      cluster_name: alice
+      managed_cluster_set: default
+      platform_type: None
+      user_managed_networking: true
+    additional_trust_bundle: |
+      -----BEGIN CERTIFICATE-----
+      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
+      DwW5/EmyHZ1Xvg==
+      -----END CERTIFICATE-----
+      -----BEGIN CERTIFICATE-----
+      MIIF9TCCA92gAwIBAgIUVD+QHbbBLAwlwHZmp1W37Qer3L4wDQYJKoZIhvcNAQEL
+      BQAwgYExCzAJBgNVBAYTAlVTMREwDwYDVQQIDAhWaXJnaW5pYTEVMBMGA1UEBwwM
+      UmFjY29vbiBDaXR5MRYwFAYDVQQKDA1VbWJyZWxsYSBMYWJzMRAwDgYDVQQLDAdV
+      QzIgUEtJMR4wHAYDVQQDDBVVbWJyZWxsYSBMYWJzIFJvb3QgQ0EwHhcNMjIwNzEz
+      MjIwNDAyWhcNNDIwNzA4MjIwNDAyWjCBgTELMAkGA1UEBhMCVVMxETAPBgNVBAgM
+      CFZpcmdpbmlhMRUwEwYDVQQHDAxSYWNjb29uIENpdHkxFjAUBgNVBAoMDVVtYnJl
+      bGxhIExhYnMxEDAOBgNVBAsMB1VDMiBQS0kxHjAcBgNVBAMMFVVtYnJlbGxhIExh
+      YnMgUm9vdCBDQTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBALx7HGQ5
+      zsKLiVkIBy3l3ldQKPNchSxsYuFuD+vDxyMKp6r0LFU1amTqOgYTMJw4l7iYCvmP
+      asoCiW/tm1MfcCXKkQgdmLVYOrIIrbnv2Yt9sUEWrWdcWtTwj9QaJ6W1UwcQphYA
+      KNdCvV2hTbp4x3J7PmW5t3C1+0ifKA8Sr6Gfcd1Onrpx03TaJ+4eaZ1fwqlUYaTM
+      TTM2qiXFbSph2AoZIX2ksXGsWAQyYgw/oVzsazyAiPrCVKrqheRDcDpe/kleo4Vg
+      PoCEvV6/PRwtlmRlOeohCeV/rc/0J/l7+IlttUGPLlBeLAXvQ3FG3/z45dBcHQ7j
+      X40vmaxWvETIrUq0hf0JIqaH+a7jSN3VU9zjoFcTvESHaGaQjhsoEj9aBkuEJWnw
+      qAiYbT1Oq9N8VHSDpUiWF6vNX9I/bwTX8jzVkCI85gcFAlaGoBCKKS3iJOX8foKu
+      sUV23FBgsyA02Uah8UzpsNYedKQErFi6q9bPrkv8OdPeR8KKCm4TU/geg7tMGJ4r
+      nqkYuejKRBYj2CEbM0s9+QSZiCqiQlAlUjUktb6sRbbjFoj+ZgAEBhCslV97xtgz
+      WjLX6Ck/qN1837GGgesOrsNejhw24CqhJfeXrAjxK8ZpTKz0HZXtEFcXFlvWE5zT
+      gyZ0HSO8A69P/WeApY+4/5SWts4ESvw7TMzzAgMBAAGjYzBhMB0GA1UdDgQWBBS1
+      hsvG49FJIY/+oltrZiBLlhoFZzAfBgNVHSMEGDAWgBS1hsvG49FJIY/+oltrZiBL
+      lhoFZzAPBgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjANBgkqhkiG9w0B
+      AQsFAAOCAgEAnG1uwkY9NVIeTemG3rIv1NZ6ycTBS9GOguH/EDQOvZPiKdkxQ/Mu
+      e2tOUcEyDQfDHGRE1aE/Tkbmr8GUvtMzF5XAh+ZnWGfwUQd+fOHr689oP+H/VS5B
+      juJfO26SPO2uZTjLg81ZcbTIVN6GNtHL4EEB9ktoy2wWZoXbg8LWA+teRPW/aqiZ
+      iS4mpq1PfURIo/2Z+T03I2G9d5O/OKdplEusF7vBLNS/8hYekHCRWPTTtfQUSIo9
+      +635vJjHWvpqZaxXGL68K/mCisg5qvIn/JOYDGdwt0PQ59i1y7xXZ1iUwOwIdRfS
+      4juN0MJHHHL6a1huoqkonGH7JW0ieqkOjFtNd2oj7eQgJU3W8Ho9fLxgumRZgSKm
+      XdWSYo6HspcxRTYPC8h4pAw5BDeeJsVfEsqW9NQ9CB7njbMffX3JRkE95PQUSnf1
+      66Fks+Px/+qUwtz9j39OQJ2Luhtmpl/GRSk7Hc+eQx3GahXBy16Qsg6ZdXm5dqtr
+      BWNWRrm/EsObFIlrxLVcdIah67f/TH7ZO1cM+OKSR7jVr6S3d5imO8+dXhU7ncKt
+      ilQV4fM9u4yCHgdKJ1G7kHWiPUxS/z3A8SjYw+MusXEn1Uad9F0811ZFUlhcRbXi
+      m5mL5W3YtHI+DvExOA0CvbhwOjoyV41/IAx/t2LweYlpXM8EdkbC6e0=
+      -----END CERTIFICATE-----
+      -----BEGIN CERTIFICATE-----
+      MIIFpTCCA42gAwIBAgIUVfmabvgWyKTv7JYzZiQ54bXck+0wDQYJKoZIhvcNAQEL
+      BQAwYjELMAkGA1UEBhMCVVMxETAPBgNVBAgMCFZpcmdpbmlhMRowGAYDVQQHDBFO
+      b3J0aGVybiBWaXJnaW5pYTEQMA4GA1UECgwHVUMyIFBLSTESMBAGA1UECwwJTWlj
+      cm9jZXJ0MB4XDTIzMDczMTE2NTYzOFoXDTQzMDcyNjE2NTYzOFowYjELMAkGA1UE
+      BhMCVVMxETAPBgNVBAgMCFZpcmdpbmlhMRowGAYDVQQHDBFOb3J0aGVybiBWaXJn
+      aW5pYTEQMA4GA1UECgwHVUMyIFBLSTESMBAGA1UECwwJTWljcm9jZXJ0MIICIjAN
+      BgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA3UY4Of97clYsFSdJPen+4D2X9hmW
+      UsHEuB94KnA//Xr4gOGLABeNJxLa/1aveSEBcfcNTOAIZDrUgGiqJhDog4BRGNZR
+      29AYsEqPEd+1d5vRtL6KXkSZR52EekZQ/CENow0+jRV9x84LWzrSSo+USRtZ02Zx
+      V8AFOXYeQnAoScuayGDWDywy5YxZVCXCCmnyA4S0USto4LXkbz9pi0hv5XoSxG3U
+      QlqeDlpK+hIr+ODhQAqrJPbAlLJXKrZ5tRSZEqqlDMRxTh05iMddVUPqbW5SO+5V
+      5NX757fy8h50BoK0N0eoGzSsS9N+dZNb4P/odd6khj2G5EgX5yUG7tyvvBx3lfUJ
+      qZmgMmoMOKL6OwVjLFsoGijfa9YRPZimiZ99cpR+pt9hBp0juxilH9p2Mqnlvi5X
+      RcEJhNjhhdh+YZfLXAvF0X6KXuFd/ZNfK9zSJzy35q6w4Y+V86F/iXDoSTkATTrN
+      1aW3nhZyL3f8jyU6/u4twPMFJUkXLshZDWA9+0Z14OUQu3cbselGWDghYh0AnrME
+      a0+W/nrGMaXrEc9ZP4qPsBdh05m0yvuFSU6HEQu1oMAU3Lbq9YakxtrXYqLBdVVn
+      lempOivUDY3ETVsk13dv001xaXQZkGkw0id28pVB+v6HR2dwp6DUF4fGT36eNb1B
+      Bf7P1kvvO+0vDGkCAwEAAaNTMFEwHQYDVR0OBBYEFE2eNFcbUSTOrybo55FIcxcx
+      SKwIMB8GA1UdIwQYMBaAFE2eNFcbUSTOrybo55FIcxcxSKwIMA8GA1UdEwEB/wQF
+      MAMBAf8wDQYJKoZIhvcNAQELBQADggIBAIeB+pOzBLGezaSdVREzuqF9I708o/Vw
+      DTNxeH2LDpPE2Q4NNrl0EUApOCOW0bbEo9Wu6t3P+zv6y8RLWu8Dv9QQYISWhqV6
+      ZGMyoY9ZBizDwAazm5GOEENdBWy61WeEuNskYhhczHnEEyA2l1IFytLBV4mifVfN
+      l2lDiHREzRe1cOn/GEpjO2f6NQRg2fTpLySdUQEcgPbgPZeH+Henrs05KBmUEgtJ
+      ErAiTzH+7/0iRldktcHUMtLiYmMv5wVl9T4KLvA1REIv5m7vLb56UEFe/Kmug2pK
+      0TT5fuienaIcQupZDUyiCLVnd7E5MC2QgDTTPxEF/8C+c3oFTUBoEIAtYiskMNV7
+      3IlP3AiqBH7vLR3iIPGknkztTrSCVfZhwwUtwoOdPzONY28OvQFeVNTagqyV+ADE
+      Qdz1Lq9YqWP9y7Sf/QBU3lyIhblx+uTA7PqeTKu82+Y7E1mVBD2PsD7M5Ultde2Z
+      nWUOeKwXlcv4KxewOhmYjG1wjXdRPtJT7tZmn6bnSgkLYXG0BGHMYSxaMHAj8wnD
+      FLikPNFePvl9GMXFTvtX7VC1KClFWMbaG2XQnjBEOuLZTO1i/MeCFbRBxTRxatX1
+      IMzqSL8BzcvacoY7ahxZvMDF19ct8ddrfekyqmYaULPKWg254NA/kRGmqVmexg7p
+      6dIaZenqcGcg
+      -----END CERTIFICATE-----
+    ansible_python_interpreter: auto_silent
+    cleanup_known_hosts: true
+    control_plane_defaults:
+      annotations:
+        cpu-load-balancing.crio.io: disable
+        cpu-quota.crio.io: disable
+        irq-load-balancing.crio.io: disable
+        vm.kubevirt.io/workload: highperformance
+      autoattach_memballon: false
+      autoattach_serialconsole: false
+      block_multiqueue: true
+      boot_disk_name: rootdisk
+      cpu:
+        cores: 1
+        dedicatedCpuPlacement: true
+        isolateEmulatorThread: true
+        model: host-passthrough
+        numa:
+          guestMappingPassthrough: {}
+        sockets: 8
+        threads: 1
+      data_volumes:
+        - bus: virtio
+          dedicated_io_thread: true
+          name: rootdisk
+          preallocation: true
+          size: 125Gi
+          storage_class: hostpath-csi
+      dns:
+        - 172.16.10.2
+      gateway: 172.16.10.254
+      io_threads_policy: auto
+      logical_nic_name: enp1s0
+      mask: 255.255.255.0
+      memory:
+        guest: 24Gi
+        hugepages:
+          pageSize: 1Gi
+      mtu: 1500
+      network_interface_multiqueue: true
+      nics:
+        - model: virtio
+          name: default
+          network_name: default/vlan-100
+      prefix_length: 24
+    infra_env:
+      additional_ntp_servers:
+        - 172.16.10.2
+      create: true
+      discovery_iso_datastore: ocs-storagecluster-ceph-rbd-virtualization
+      image_type: minimal-iso
+      labels:
+        agentclusterinstalls.extensions.hive.openshift.io/location: UC2
+      name: alice
+      namespace: alice
+      network_type: static
+      nmstate_config_label_selector:
+        matchLabels:
+          infraenvs.agent-install.openshift.io: alice
+      pull_secret_name: pullsecret-alice
+      ssh_authorized_key: |
+        ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCwU45tZ14b81PybKtTCk4Qr6ZIA6QgO0XknAVqBEV5kAPy9aHB/L99FbIpX6iku5/QRNe7Id68gJW2vl3YRX9xQ2ogV6BFlduGM+4dqeaQ+LeYoaKrVzze/c2GmgepiYGbpOtMA9tfi3QDla2HdW1cA+SXZwl0LjSNcodu5xHNSWUnH2m71+jepwVYx8Q6uWMLab8m1jpPFrXi96aAMsssgxVo72cZNoKCetj5ckfCfh2Th5FeRgCJV9QjOAkSxSjEoa5gtaniVTH6YsmVSS4zAz3hVTlwY3HM2OxMKeHrHbmodGkx9MxC6ET1iDN7ZwfQCIlksY4x0ex/+Jv4qw5GnE0FVbvrzDlqyVDSwuvFWbQVmPobwmzBFEIxyPzeo1JcAHpLHPePadUvJBzlRUCbxZSIvlV3KOKq9EQ/nEhvhWBwEcnBYXvE+lylcH+54Js0qz4cHVVvlINZtEeC++5PFort5jvGHCMHkf4ofMXWtMJ/Zt43POkNG7k/RFRQ/THKkWriFFW7onceIEOWJzg4sCC8/ziQiKMgojkA9emecWuQJyKRKpkcnfR5hrmq3wBV+AWalj+Cs/4HyuHJWdchtCGb6CgcxAM0AknOevpRr/OomXW0JW95/JIxXUB/+X2VH/rO8+YTeeXCAiBOmreOpDvjBCmjfPfOeyxmivZh5w== core@openshift
+    provision_group: alice
+    sealed_secrets:
+      keypair_name: sealed-secrets-custom-key
+      namespace: sealed-secrets
+    template_debug: true
+    validate_certs: false
+    vm_label_selectors:
+      openshift-assisted.uc2.io/cluster: alice
+    vm_namespace: alice
+    vm_serviceaccount_name: o3-api
+    worker_defaults:
+      block_multiqueue: true
+      boot_disk_name: rootdisk
+      cpu:
+        cores: 1
+        model: host-passthrough
+        sockets: 8
+        threads: 1
+      data_volumes:
+        - bus: virtio
+          name: rootdisk
+          size: 100Gi
+          storage_class: ocs-storagecluster-ceph-rbd-virtualization
+        - bus: virtio
+          name: test-disk
+          size: 200Gi
+          storage_class: ocs-storagecluster-ceph-rbd-virtualization
+      dns:
+        - 172.16.10.2
+      gateway: 172.16.10.254
+      logical_nic_name: enp1s0
+      mask: 255.255.255.0
+      memory:
+        guest: 64Gi
+      mtu: 1500
+      network_interface_multiqueue: true
+      nics:
+        - model: virtio
+          name: default
+          network_name: default/vlan-100
+      prefix_length: 24
+      resources:
+        requests:
+          cpu: 6
+          memory: 12Gi

@@ -1,0 +1,16 @@
+---
+o3_block_multiqueue: false
+o3_create_vms_cores: 2
+o3_create_vms_eviction_strategy: LiveMigrateIfPossible
+o3_create_vms_sockets: 2
+o3_create_vms_threads: 2
+o3_dedicated_io_thread: false
+o3_domain_features:
+  acpi: {}
+  smm:
+    enabled: true
+o3_firmware:
+  bootloader:
+    efi: {}
+o3_io_threads_policy: shared
+o3_network_interface_multiqueue: false

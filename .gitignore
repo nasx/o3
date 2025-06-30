@@ -1,0 +1,5 @@
+.vscode
+collections/ansible_collections
+local/
+vault.yaml
+

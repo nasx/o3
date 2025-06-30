@@ -1,0 +1,93 @@
+---
+- name: Create Discovery ISO DataVolume from HTTP Source
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    resource_definition:
+      apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: "{{ iso_dv_name }}"
+        namespace: "{{ iso_dv_namespace }}"
+      spec:
+        source:
+          http:
+            certConfigMap: iso-http-ca
+            url: "{{ iso_dv_download_url }}"
+        storage:
+          accessModes:
+            - ReadWriteMany
+          resources:
+            requests:
+              storage: 5Gi
+          storageClassName: "{{ iso_dv_datastore }}"
+          volumeMode: Block
+    state: present
+    validate_certs: "{{ validate_certs }}"
+
+- name: Wait for Discovery ISO DataVolume
+  kubernetes.core.k8s_info:
+    api_key: "{{ k8s_auth_api_key }}"
+    api_version: cdi.kubevirt.io/v1beta1
+    host: "{{ k8s_auth_host }}"
+    kind: DataVolume
+    name: "{{ iso_dv_name }}"
+    namespace: "{{ iso_dv_namespace }}"
+    validate_certs: "{{ validate_certs }}"
+  delay: 5
+  retries: 60
+  register: volume_results
+  until:
+    - volume_results.resources is defined
+    - volume_results.resources | count == 1
+    - volume_results.resources[0].status is defined
+    - volume_results.resources[0].status.phase is defined
+    - volume_results.resources[0].status.phase == "Succeeded"
+
+- name: Attach Boot ISO to Virtual Machines
+  vars:
+    kubevirt_disk_name: "{{ iso_dv_name }}"
+    kubevirt_disk_vm_name: "{{ item }}"
+    kubevirt_disk_vm_namespace: "{{ iso_dv_namespace }}"
+    kubevirt_disk_add_disk:
+      cdrom:
+        bus: scsi
+      name: "{{ iso_dv_name }}"
+      shareable: true
+    kubevirt_disk_add_volume:
+      name: "{{ iso_dv_name }}"
+      persistentVolumeClaim:
+        claimName: "{{ iso_dv_name }}"
+  ansible.builtin.include_role:
+    name: kubevirt_disk
+    tasks_from: add
+  loop: "{{ groups[provision_group] }}"
+
+- name: Set Virtual Machine Run Strategy
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    resource_definition:
+      apiVersion: kubevirt.io/v1
+      kind: VirtualMachine
+      metadata:
+        name: "{{ item }}"
+        namespace: "{{ vm_namespace }}"
+      spec:
+        running: null
+        runStrategy: Manual
+    validate_certs: "{{ validate_certs }}"
+  loop: "{{ groups[provision_group] }}"
+
+- name: Use API to Power on VM
+  vars:
+    _uri: "/apis/subresources.kubevirt.io/v1/namespaces/{{ vm_namespace }}/virtualmachines/{{ item }}/start"
+  ansible.builtin.uri:
+    headers:
+      Authorization: "Bearer {{ k8s_auth_api_key }}"
+    method: PUT
+    status_code:
+      - 202
+    url: "{{ k8s_auth_host }}{{ _uri }}"
+    validate_certs: "{{ validate_certs }}"
+  loop: "{{ groups[provision_group] }}"

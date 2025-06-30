@@ -1,0 +1,130 @@
+---
+- name: Delete OpenShift Cluster
+  become: false
+  gather_facts: false
+  hosts: localhost
+  tasks:
+    - name: Reconfigure Cluster VMs
+      kubernetes.core.k8s:
+        api_key: "{{ platform_token }}"
+        host: "{{ platform_api }}"
+        resource_definition:
+          apiVersion: kubevirt.io/v1
+          kind: VirtualMachine
+          metadata:
+            name: "{{ item }}"
+            namespace: "{{ vm_namespace }}"
+          spec:
+            runStrategy: Halted
+            running: null
+            template:
+              spec:
+                terminationGracePeriodSeconds: 0
+        validate_certs: "{{ validate_certs }}"
+      loop: "{{ groups[provision_group] }}"
+
+    - name: Use API to Force Power Off VM
+      vars:
+        _uri: "/apis/subresources.kubevirt.io/v1/namespaces/{{ vm_namespace }}/virtualmachines/{{ item }}/stop"
+      ansible.builtin.uri:
+        body:
+          gracePeriod: 0
+        body_format: json
+        headers:
+          Authorization: "Bearer {{ platform_token }}"
+        method: PUT
+        status_code:
+          - 202
+          - 404
+          - 409
+        url: "{{ platform_api }}{{ _uri }}"
+        validate_certs: "{{ validate_certs }}"
+      loop: "{{ groups[provision_group] }}"
+
+    - name: Delete VirtualMachine Resources
+      kubevirt.core.kubevirt_vm:
+        api_key: "{{ platform_token }}"
+        host: "{{ platform_api }}"
+        name: "{{ item }}"
+        namespace: "{{ vm_namespace }}"
+        state: absent
+        validate_certs: "{{ validate_certs }}"
+      loop: "{{ groups[provision_group] }}"
+
+    - name: Delete Boot ISO
+      kubernetes.core.k8s:
+        api_key: "{{ platform_token }}"
+        api_version: cdi.kubevirt.io/v1beta1
+        host: "{{ platform_api }}"
+        kind: DataVolume
+        name: "{{ infra_env.name }}-discovery-iso"
+        namespace: "{{ vm_namespace }}"
+        state: absent
+        validate_certs: "{{ validate_certs }}"
+
+    - name: Delete NMStateConfigs
+      kubernetes.core.k8s:
+        api_key: "{{ hub_token }}"
+        api_version: agent-install.openshift.io/v1beta1
+        host: "{{ hub_api }}"
+        kind: NMStateConfig
+        name: "{{ item }}"
+        namespace: "{{ infra_env.namespace }}"
+        state: absent
+        validate_certs: "{{ validate_certs }}"
+      loop: "{{ groups[provision_group] }}"
+
+    - name: Delete InfraEnv
+      kubernetes.core.k8s:
+        api_key: "{{ hub_token }}"
+        api_version: agent-install.openshift.io/v1beta1
+        host: "{{ hub_api }}"
+        kind: InfraEnv
+        name: "{{ infra_env.name }}"
+        namespace: "{{ infra_env.namespace }}"
+        state: absent
+        validate_certs: "{{ validate_certs }}"
+
+    - name: Delete AgentClusterInstall
+      kubernetes.core.k8s:
+        api_key: "{{ hub_token }}"
+        api_version: extensions.hive.openshift.io/v1beta1
+        host: "{{ hub_api }}"
+        kind: AgentClusterInstall
+        name: "{{ acm.cluster_name }}"
+        namespace: "{{ infra_env.namespace }}"
+        state: absent
+        validate_certs: "{{ validate_certs }}"
+
+    - name: Delete ClusterDeployment
+      kubernetes.core.k8s:
+        api_key: "{{ hub_token }}"
+        api_version: hive.openshift.io/v1
+        host: "{{ hub_api }}"
+        kind: ClusterDeployment
+        name: "{{ acm.cluster_name }}"
+        namespace: "{{ infra_env.namespace }}"
+        state: absent
+        validate_certs: "{{ validate_certs }}"
+
+    - name: Delete ManagedCluster
+      kubernetes.core.k8s:
+        api_key: "{{ hub_token }}"
+        api_version: cluster.open-cluster-management.io/v1
+        host: "{{ hub_api }}"
+        kind: ManagedCluster
+        name: "{{ acm.cluster_name }}"
+        namespace: "{{ infra_env.namespace }}"
+        state: absent
+        validate_certs: "{{ validate_certs }}"
+
+    - name: Delete KlusterletAddonConfig
+      kubernetes.core.k8s:
+        api_key: "{{ hub_token }}"
+        api_version: agent.open-cluster-management.io/v1
+        host: "{{ hub_api }}"
+        kind: KlusterletAddonConfig
+        name: "{{ acm.cluster_name }}"
+        namespace: "{{ infra_env.namespace }}"
+        state: absent
+        validate_certs: "{{ validate_certs }}"

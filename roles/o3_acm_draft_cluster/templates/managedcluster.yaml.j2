@@ -1,0 +1,16 @@
+---
+apiVersion: cluster.open-cluster-management.io/v1
+kind: ManagedCluster
+metadata:
+  name: {{ acm.cluster_name }}
+  labels:
+    cloud: BareMetal
+    cluster.open-cluster-management.io/clusterset: {{ acm.managed_cluster_set | default('default') }}
+    name: {{ acm.cluster_name }}
+    vendor: OpenShift
+spec:
+  hubAcceptsClient: true
+  leaseDurationSeconds: 60
+  taints:
+    - effect: NoSelect
+      key: cluster.open-cluster-management.io/unreachable

@@ -1,0 +1,102 @@
+---
+- name: Deploy OpenShift on OpenShift Virtualization
+  become: false
+  gather_facts: false
+  hosts: localhost
+  tasks:
+    - name: Create Namespace
+      kubernetes.core.k8s:
+        api_key: "{{ platform_token }}"
+        host: "{{ platform_api }}"
+        resource_definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ infra_env.namespace }}"
+          spec: {}
+        state: present
+        validate_certs: "{{ validate_certs }}"
+
+    - name: Create Virtual Machines
+      vars:
+        k8s_auth_api_key: "{{ platform_token }}"
+        k8s_auth_host: "{{ platform_api }}"
+      ansible.builtin.include_role:
+        name: o3_create_vms
+
+    - name: Create InfraEnv
+      vars:
+        k8s_auth_api_key: "{{ hub_token }}"
+        k8s_auth_host: "{{ hub_api }}"
+      ansible.builtin.include_role:
+        name: o3_acm_create_infraenv
+      when:
+        - infra_env.create | default(false)
+
+    - name: Attach Discovery ISO and Boot Virtual Machines
+      vars:
+        k8s_auth_api_key: "{{ platform_token }}"
+        k8s_auth_host: "{{ platform_api }}"
+      ansible.builtin.include_role:
+        name: o3_first_boot
+
+    - name: Wait for Agents
+      vars:
+        k8s_auth_api_key: "{{ hub_token }}"
+        k8s_auth_host: "{{ hub_api }}"
+      ansible.builtin.include_role:
+        name: o3_acm_agent
+        tasks_from: wait
+
+    - name: Approve Agents
+      vars:
+        k8s_auth_api_key: "{{ hub_token }}"
+        k8s_auth_host: "{{ hub_api }}"
+      ansible.builtin.include_role:
+        name: o3_acm_agent
+        tasks_from: approve
+
+    - name: Create Draft Cluster
+      vars:
+        k8s_auth_api_key: "{{ hub_token }}"
+        k8s_auth_host: "{{ hub_api }}"
+      ansible.builtin.include_role:
+        name: o3_acm_draft_cluster
+
+    - name: Bind Agents to Cluster
+      vars:
+        k8s_auth_api_key: "{{ hub_token }}"
+        k8s_auth_host: "{{ hub_api }}"
+      ansible.builtin.include_role:
+        name: o3_acm_agent
+        tasks_from: bind
+
+    - name: Configure Agents
+      vars:
+        k8s_auth_api_key: "{{ hub_token }}"
+        k8s_auth_host: "{{ hub_api }}"
+      ansible.builtin.include_role:
+        name: o3_acm_agent
+        tasks_from: configure
+
+    - name: Wait for Install Ready
+      vars:
+        k8s_auth_api_key: "{{ hub_token }}"
+        k8s_auth_host: "{{ hub_api }}"
+      ansible.builtin.include_role:
+        name: o3_acm_wait_for_install_ready
+
+    - name: Initiate Cluster Installation
+      kubernetes.core.k8s:
+        api_key: "{{ hub_token }}"
+        host: "{{ hub_api }}"
+        resource_definition:
+          apiVersion: extensions.hive.openshift.io/v1beta1
+          kind: AgentClusterInstall
+          metadata:
+            name: "{{ acm.cluster_name }}"
+            namespace: "{{ infra_env.namespace }}"
+          spec:
+            holdInstallation: false
+        state: patched
+        validate_certs: "{{ validate_certs }}"

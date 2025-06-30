@@ -1,0 +1,34 @@
+---
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: {{ infra_env.name }}
+  namespace: {{ infra_env.namespace }}
+  labels:
+    {{ infra_env.labels | to_nice_yaml(indent=2) | indent(4) | trim }}
+    networkType: {{ infra_env.network_type }}
+spec:
+{% if infra_env.additional_ntp_sources is defined %}
+  additionalNTPSources:
+    {{ infra_env.additional_ntp_sources | to_nice_yaml(indent=2) | indent(4) | trim }}
+{% endif %}
+  agentLabels:
+    {{ infra_env.labels | to_nice_yaml(indent=2) | indent(4) | trim }}
+  cpuArchitecture: {{ infra_env.cpu_architecture | default("x86_64") }}
+  imageType: {{ infra_env.image_type | default("minimal-iso") }}
+{% if infra_env.ipxe_script_type is defined %}
+  ipxeScriptType: {{ infra_env.ipxe_script_type }}
+{% endif %}
+{% if infra_env.kernel_arguments is defined %}
+  kernelArguments:
+    {{ infra_env.kernel_arguments | to_nice_yaml(indent=2) | indent(4) | trim }}
+{% endif %}
+  nmStateConfigLabelSelector:
+    {{ infra_env.nmstate_config_label_selector | to_nice_yaml(indent=2) | indent(4) | trim }}
+{% if infra_env.proxy is defined %}
+  proxy:
+    {{ infra_env.proxy | to_nice_yaml(indent=2) | indent(4) | trim }}
+{% endif %}
+  pullSecretRef:
+    name: {{ infra_env.pull_secret_name }}
+  sshAuthorizedKey: {{ infra_env.ssh_authorized_key | trim }}

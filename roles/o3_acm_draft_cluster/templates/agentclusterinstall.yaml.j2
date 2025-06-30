@@ -1,0 +1,20 @@
+---
+apiVersion: extensions.hive.openshift.io/v1beta1
+kind: AgentClusterInstall
+metadata:
+  name: {{ acm.cluster_name }}
+  namespace: {{ infra_env.namespace }}
+spec:
+  clusterDeploymentRef:
+    name: {{ acm.cluster_name }}
+  holdInstallation: true
+  imageSetRef:
+    name: {{ acm.cluster_image_set }}
+  networking:
+    {{ acm.networking | default(o3_networking) | to_nice_yaml(indent=2) | indent(4) | trim }}
+    userManagedNetworking: {{ acm.user_managed_networking }}
+  platformType: {{ acm.platform_type }}
+  provisionRequirements:
+    controlPlaneAgents: {{ _control_count }}
+    workerAgents: {{ _compute_count }}
+  sshPublicKey: {{ infra_env.ssh_authorized_key }}

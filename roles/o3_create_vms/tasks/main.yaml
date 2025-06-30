@@ -1,0 +1,93 @@
+---
+- name: Debug templates/virtualmachine.yaml.j2
+  ansible.builtin.template:
+    dest: /tmp/{{ item }}.yaml
+    lstrip_blocks: true
+    mode: '0600'
+    src: templates/virtualmachine.yaml.j2
+  loop: "{{ groups[provision_group] }}"
+  when:
+    - template_debug | default(false)
+
+- name: Create Virtual Machines
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    template:
+      path: templates/virtualmachine.yaml.j2
+      lstrip_blocks: true
+    validate_certs: "{{ validate_certs }}"
+  loop: "{{ groups[provision_group] }}"
+
+- name: Define Lists of Keys and Values For Label Selectors
+  ansible.builtin.set_fact:
+    _label_selector_key_list: >-
+      {{
+        vm_label_selectors | dict2items | map(attribute='key') | list
+      }}
+    _label_selector_value_list: >-
+      {{
+        vm_label_selectors | dict2items | map(attribute='value') | list
+      }}
+
+- name: Query VMs
+  kubernetes.core.k8s_info:
+    api_key: "{{ k8s_auth_api_key }}"
+    api_version: kubevirt.io/v1
+    host: "{{ k8s_auth_host }}"
+    kind: VirtualMachine
+    label_selectors: "{{ _label_selector_key_list | zip(_label_selector_value_list) | map('join', ' = ') }}"
+    validate_certs: "{{ validate_certs }}"
+  register: vm_results
+
+- name: Organize Network Metadata (Control Plane)
+  vars:
+    _query: "resources[?metadata.name==`{{ item }}`].spec.template.spec.domain.devices.interfaces[] | [?name==`default`].macAddress"
+  ansible.builtin.set_fact:
+    _network_metadata: >-
+      {{
+        _network_metadata | default([]) +
+        [
+          {
+            'dns': hostvars[item].dns | default(control_plane_defaults.dns),
+            'gateway': hostvars[item].gateway | default(control_plane_defaults.gateway),
+            'interface': hostvars[item].logical_nic_name | default(control_plane_defaults.logical_nic_name),
+            'ip': hostvars[item].ip,
+            'mac': vm_results | json_query(_query) | first,
+            'mtu': hostvars[item].mtu | default(control_plane_defaults.mtu),
+            'name': item,
+            'prefix_length': hostvars[item].prefix_length | default(control_plane_defaults.prefix_length)
+          }
+        ]
+      }}
+  loop: "{{ groups[provision_group] }}"
+  when:
+    - hostvars[item].api_node_type == "master"
+
+- name: Organize Network Metadata (Compute)
+  vars:
+    _query: "resources[?metadata.name==`{{ item }}`].spec.template.spec.domain.devices.interfaces[] | [?name==`default`].macAddress"
+  ansible.builtin.set_fact:
+    _network_metadata: >-
+      {{
+        _network_metadata | default([]) +
+        [
+          {
+            'dns': hostvars[item].dns | default(worker_defaults.dns),
+            'gateway': hostvars[item].gateway | default(worker_defaults.gateway),
+            'interface': hostvars[item].logical_nic_name | default(worker_defaults.logical_nic_name),
+            'ip': hostvars[item].ip,
+            'mac': vm_results | json_query(_query) | first,
+            'mtu': hostvars[item].mtu | default(worker_defaults.mtu),
+            'name': item,
+            'prefix_length': hostvars[item].prefix_length | default(worker_defaults.prefix_length)
+          }
+        ]
+      }}
+  loop: "{{ groups[provision_group] }}"
+  when:
+    - hostvars[item].api_node_type != "master"
+
+- name: Debug _network_metadata
+  ansible.builtin.debug:
+    var: _network_metadata

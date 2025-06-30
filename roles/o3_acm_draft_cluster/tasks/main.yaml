@@ -1,0 +1,44 @@
+---
+- name: Set Node Counts
+  vars:
+    _control_query: "[?value.api_node_type=='master']"
+    _compute_query: "[?value.api_node_type=='worker']"
+  ansible.builtin.set_fact:
+    _control_count: "{{ hostvars | dict2items | json_query(_control_query) | count }}"
+    _compute_count: "{{ hostvars | dict2items | json_query(_compute_query) | count }}"
+
+- name: Create AgentClusterInstall
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    template:
+      lstrip_blocks: true
+      path: templates/agentclusterinstall.yaml.j2
+    validate_certs: "{{ validate_certs }}"
+
+- name: Create ClusterDeployment
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    template:
+      lstrip_blocks: true
+      path: templates/clusterdeployment.yaml.j2
+    validate_certs: "{{ validate_certs }}"
+
+- name: Create KlusterletAddonConfig
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    template:
+      lstrip_blocks: true
+      path: templates/klusterletaddonconfig.yaml.j2
+    validate_certs: "{{ validate_certs }}"
+
+- name: Create ManagedCluster
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    template:
+      lstrip_blocks: true
+      path: templates/managedcluster.yaml.j2
+    validate_certs: "{{ validate_certs }}"

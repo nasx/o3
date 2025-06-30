@@ -1,0 +1,38 @@
+---
+- name: Assert Variables are Defined
+  ansible.builtin.assert:
+    that:
+      - k8s_auth_api_key is defined
+      - k8s_auth_host is defined
+      - kubevirt_disk_add_disk is defined
+      - kubevirt_disk_add_volume is defined
+      - kubevirt_disk_vm_name is defined
+      - kubevirt_disk_vm_namespace is defined
+
+- name: Query VirtualMachine Resource
+  kubernetes.core.k8s_info:
+    api_key: "{{ k8s_auth_api_key }}"
+    api_version: kubevirt.io/v1
+    host: "{{ k8s_auth_host }}"
+    kind: VirtualMachine
+    name: "{{ kubevirt_disk_vm_name }}"
+    namespace: "{{ kubevirt_disk_vm_namespace }}"
+    validate_certs: "{{ validate_certs }}"
+  register: vm_results
+
+- name: Add Disk and Volume References to VirtualMachine Resource
+  kubernetes.core.k8s_json_patch:
+    api_key: "{{ k8s_auth_api_key }}"
+    api_version: kubevirt.io/v1
+    host: "{{ k8s_auth_host }}"
+    kind: VirtualMachine
+    name: "{{ kubevirt_disk_vm_name }}"
+    namespace: "{{ kubevirt_disk_vm_namespace }}"
+    patch:
+      - op: add
+        path: "/spec/template/spec/domain/devices/disks/-"
+        value: "{{ kubevirt_disk_add_disk }}"
+      - op: add
+        path: "/spec/template/spec/volumes/-"
+        value: "{{ kubevirt_disk_add_volume }}"
+    validate_certs: "{{ validate_certs }}"

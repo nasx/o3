@@ -1,0 +1,36 @@
+---
+apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  labels:
+    agent-install.openshift.io/bmh: {{ item.name }}
+    infraenvs.agent-install.openshift.io: {{ infra_env.name }}
+  name: {{ item.name }}
+  namespace: {{ infra_env.namespace }}
+spec:
+  config:
+    dns-resolver:
+      config:
+        server:
+          {{ item.dns | to_nice_yaml(indent=2) | indent(10) | trim }}
+    interfaces:
+      - ipv4:
+          address:
+            - ip: {{ item.ip }}
+              prefix-length: {{ item.prefix_length }}
+          dhcp: false
+          enabled: true
+        ipv6:
+          enabled: false
+        name: {{ item.interface }}
+        state: up
+        type: ethernet
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: {{ item.gateway }}
+          next-hop-interface: {{ item.interface }}
+          table-id: 254
+  interfaces:
+    - macAddress: "{{ item.mac }}"
+      name: {{ item.interface }}

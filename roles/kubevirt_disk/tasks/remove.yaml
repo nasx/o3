@@ -1,0 +1,59 @@
+---
+- name: Assert Variables are Defined
+  ansible.builtin.assert:
+    that:
+      - kubevirt_disk_vm_name is defined
+      - kubevirt_disk_vm_namespace is defined
+
+- name: Query VirtualMachine Resource
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: VirtualMachine
+    name: "{{ kubevirt_disk_vm_name }}"
+    namespace: "{{ kubevirt_disk_vm_namespace }}"
+    validate_certs: "{{ validate_certs }}"
+  register: vm_results
+
+- name: Debug vm_results
+  ansible.builtin.debug:
+    var: vm_results
+
+- name: Set Array Index for Disk/Volume
+  ansible.builtin.set_fact:
+    _disk_index: >-
+      {{
+        lookup(
+          'ansible.utils.index_of',
+          vm_results.resources[0].spec.template.spec.domain.devices.disks,
+          'eq',
+          kubevirt_disk_name,
+          'name'
+        )
+      }}
+    _volume_index: >-
+      {{
+        lookup(
+          'ansible.utils.index_of',
+          vm_results.resources[0].spec.template.spec.volumes,
+          'eq',
+          kubevirt_disk_name,
+          'name'
+        )
+      }}
+
+- name: Debug Array Index for Disk/Volume
+  ansible.builtin.debug:
+    msg: "Disk Index: {{ _disk_index }}/Volume Index: {{ _volume_index }}"
+
+- name: Remove Disk and Volume Reference from VirtualMachine Resource
+  kubernetes.core.k8s_json_patch:
+    api_version: kubevirt.io/v1
+    kind: VirtualMachine
+    name: "{{ kubevirt_disk_vm_name }}"
+    namespace: "{{ kubevirt_disk_vm_namespace }}"
+    patch:
+      - op: remove
+        path: "/spec/template/spec/domain/devices/disks/{{ _disk_index }}"
+      - op: remove
+        path: "/spec/template/spec/volumes/{{ _volume_index }}"
+    validate_certs: "{{ validate_certs }}"

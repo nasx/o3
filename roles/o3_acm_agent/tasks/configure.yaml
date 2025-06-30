@@ -1,0 +1,104 @@
+---
+- name: Query Agents
+  kubernetes.core.k8s_info:
+    api_key: "{{ k8s_auth_api_key }}"
+    api_version: agent-install.openshift.io/v1beta1
+    host: "{{ k8s_auth_host }}"
+    kind: Agent
+    label_selectors:
+      - "infraenvs.agent-install.openshift.io = {{ infra_env.name }}"
+    namespace: "{{ infra_env.namespace }}"
+    validate_certs: "{{ validate_certs }}"
+  register: agent_results
+
+- name: Define Target Agent Properties
+  ansible.builtin.set_fact:
+    _agent_id_name_mapping: >-
+      {{
+        _agent_id_name_mapping | default([]) +
+        [
+          {
+            'id': item.metadata.name,
+            'name': item.status.inventory.hostname | split('.') | first
+          }
+        ]
+      }}
+  loop: "{{ agent_results.resources }}"
+  no_log: true
+
+- name: Debug _agent_id_name_mapping
+  ansible.builtin.debug:
+    var: _agent_id_name_mapping
+
+- name: Build Control Plane Agent Settings
+  vars:
+    _bootdisk_name: "{{ hostvars[item.name].boot_disk_name | default(control_plane_defaults.boot_disk_name) }}"
+    _bootdisk_query: "[?serial==`{{ _bootdisk_name }}`].id"
+    _disks_query: "[?metadata.name==`{{ item.id }}`].status.inventory.disks[]"
+  ansible.builtin.set_fact:
+    _agent_config_control: >-
+      {{
+        _agent_config_control | default([]) +
+        [
+          {
+            'api_node_type': 'master',
+            'boot_disk_id': agent_results.resources | json_query(_disks_query) | json_query(_bootdisk_query) | first,
+            'boot_disk_name': _bootdisk_name,
+            'id': item.id,
+            'name': item.name
+          }
+        ]
+      }}
+  loop: "{{ _agent_id_name_mapping }}"
+  when:
+    - hostvars[item.name].api_node_type == "master"
+
+- name: Debug _agent_config_control
+  ansible.builtin.debug:
+    var: _agent_config_control
+
+- name: Build Worker Agent Settings
+  vars:
+    _bootdisk_name: "{{ hostvars[item.name].boot_disk_name | default(worker_defaults.boot_disk_name) }}"
+    _bootdisk_query: "[?serial==`{{ _bootdisk_name }}`].id"
+    _disks_query: "[?metadata.name==`{{ item.id }}`].status.inventory.disks[]"
+  ansible.builtin.set_fact:
+    _agent_config_worker: >-
+      {{
+        _agent_config_worker | default([]) +
+        [
+          {
+            'api_node_type': 'worker',
+            'boot_disk_id': agent_results.resources | json_query(_disks_query) | json_query(_bootdisk_query) | first,
+            'boot_disk_name': _bootdisk_name,
+            'id': item.id,
+            'name': item.name
+          }
+        ]
+      }}
+  loop: "{{ _agent_id_name_mapping }}"
+  when:
+    - hostvars[item.name].api_node_type == "worker"
+
+- name: Debug _agent_config_worker
+  ansible.builtin.debug:
+    var: _agent_config_worker
+
+- name: Configure Agents
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    resource_definition:
+      apiVersion: agent-install.openshift.io/v1beta1
+      kind: Agent
+      metadata:
+        annotations:
+          agent.agent-install.openshift.io/role: "{{ item.api_node_type }}"
+        name: "{{ item.id }}"
+        namespace: "{{ infra_env.namespace }}"
+      spec:
+        installation_disk_id: "{{ item.boot_disk_id }}"
+        role: "{{ item.api_node_type }}"
+    state: patched
+    validate_certs: "{{ validate_certs }}"
+  loop: "{{ _agent_config_control + _agent_config_worker }}"

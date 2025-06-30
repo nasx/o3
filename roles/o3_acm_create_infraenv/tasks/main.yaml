@@ -1,0 +1,102 @@
+---
+- name: Create InfraEnv Pull Secret
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    resource_definition:
+      apiVersion: v1
+      data:
+        ".dockerconfigjson": "{{ pull_secret | trim | ansible.builtin.b64encode }}"
+      kind: Secret
+      metadata:
+        name: "pullsecret-{{ infra_env.name }}"
+        namespace: "{{ infra_env.namespace }}"
+      type: kubernetes.io/dockerconfigjson
+    validate_certs: "{{ validate_certs }}"
+
+- name: Debug templates/nmstateconfig.yaml.j2
+  ansible.builtin.template:
+    dest: "/tmp/{{ item.name }}-nmstateconfig.yaml"
+    lstrip_blocks: true
+    mode: '0600'
+    src: templates/nmstateconfig.yaml.j2
+  loop: "{{ _network_metadata }}"
+  when:
+    - template_debug | default(false)
+
+- name: Debug templates/infraenv.yaml.j2
+  ansible.builtin.template:
+    dest: /tmp/infraenv.yaml
+    lstrip_blocks: true
+    mode: '0600'
+    src: templates/infraenv.yaml.j2
+  when:
+    - template_debug | default(false)
+
+- name: Create NMStateConfigs
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    template:
+      lstrip_blocks: true
+      path: templates/nmstateconfig.yaml.j2
+    validate_certs: "{{ validate_certs }}"
+  loop: "{{ _network_metadata }}"
+
+- name: Create InfraEnv
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    template:
+      lstrip_blocks: true
+      path: templates/infraenv.yaml.j2
+    validate_certs: "{{ validate_certs }}"
+
+- name: Wait for Image Availability
+  vars:
+    _query: "status.conditions[?type==`ImageCreated`].status"
+  kubernetes.core.k8s_info:
+    api_key: "{{ k8s_auth_api_key }}"
+    api_version: agent-install.openshift.io/v1beta1
+    host: "{{ k8s_auth_host }}"
+    kind: InfraEnv
+    name: "{{ infra_env.name }}"
+    namespace: "{{ infra_env.namespace }}"
+    validate_certs: "{{ validate_certs }}"
+  delay: 5
+  retries: 60
+  register: infraenv_results
+  until:
+    - infraenv_results.resources is defined
+    - infraenv_results.resources | count == 1
+    - infraenv_results.resources[0].status is defined
+    - infraenv_results.resources[0].status.isoDownloadURL is defined
+    - infraenv_results.resources[0].status.conditions is defined
+    - infraenv_results.resources[0].status.conditions | count >= 1
+    - infraenv_results.resources[0] | json_query(_query) | first == "True"
+
+- name: Create ConfigMap for CA Certificate
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    resource_definition:
+      apiVersion: v1
+      data:
+        ca.crt: |-
+          {{ additional_trust_bundle | trim }}
+      kind: ConfigMap
+      metadata:
+        name: iso-http-ca
+        namespace: "{{ infra_env.namespace }}"
+    validate_certs: "{{ validate_certs }}"
+
+- name: Set ISO Facts
+  ansible.builtin.set_fact:
+    iso_dv_download_url: "{{ infraenv_results.resources[0].status.isoDownloadURL }}"
+    iso_dv_name: "{{ infra_env.name }}-discovery-iso"
+    iso_dv_namespace: "{{ infra_env.namespace }}"
+    iso_dv_datastore: "{{ infra_env.discovery_iso_datastore }}"
+
+- name: Debug iso_dv_download_url
+  ansible.builtin.debug:
+    var: iso_dv_download_url

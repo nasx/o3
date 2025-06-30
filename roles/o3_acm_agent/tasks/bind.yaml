@@ -1,0 +1,52 @@
+---
+- name: Query Agents
+  kubernetes.core.k8s_info:
+    api_key: "{{ k8s_auth_api_key }}"
+    api_version: agent-install.openshift.io/v1beta1
+    host: "{{ k8s_auth_host }}"
+    kind: Agent
+    label_selectors:
+      - "infraenvs.agent-install.openshift.io = {{ infra_env.name }}"
+    namespace: "{{ infra_env.namespace }}"
+    validate_certs: "{{ validate_certs }}"
+  register: agent_results
+
+- name: Reset _agent_names
+  ansible.builtin.set_fact:
+    _agent_names: []
+
+- name: Build List of Agent Names to Bind
+  ansible.builtin.set_fact:
+    _agent_names: >-
+      {{
+        _agent_names | default([]) + [ item.metadata.name ]
+      }}
+  loop: "{{ agent_results.resources }}"
+  no_log: true
+  when:
+    - item.status is defined
+    - item.status.inventory is defined
+    - item.status.inventory.hostname is defined
+    - item.status.inventory.hostname | split('.') | first in groups[provision_group]
+
+- name: Debug _agent_names
+  ansible.builtin.debug:
+    var: _agent_names
+
+- name: Bind Agents to Cluster
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    resource_definition:
+      apiVersion: agent-install.openshift.io/v1beta1
+      kind: Agent
+      metadata:
+        name: "{{ item }}"
+        namespace: "{{ infra_env.namespace }}"
+      spec:
+        clusterDeploymentName:
+          name: "{{ acm.cluster_name }}"
+          namespace: "{{ infra_env.namespace }}"
+    state: patched
+    validate_certs: "{{ validate_certs }}"
+  loop: "{{ _agent_names }}"

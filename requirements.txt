@@ -1,0 +1,6 @@
+ansible
+ansible-lint
+dnspython
+jmespath
+openshift
+pyghmi

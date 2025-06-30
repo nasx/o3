@@ -1,0 +1,120 @@
+{% if hostvars[item].api_node_type == "master" -%}
+  {% set vm_defaults = control_plane_defaults -%}
+{% else -%}
+  {% set vm_defaults = worker_defaults -%}
+{% endif -%}
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  labels:
+    app: {{ item }}
+    {{ vm_label_selectors | to_nice_yaml(indent=2) | indent(4) | trim }}
+  name: {{ item }}
+  namespace: {{ vm_namespace }}
+spec:
+  dataVolumeTemplates:
+    {% for dv in hostvars[item].data_volumes | default(vm_defaults.data_volumes, true) | default([]) %}
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: {{ item }}-{{ dv.name }}
+      spec:
+        preallocation: {{ dv.preallocation | default(false) }}
+        source:
+          blank: {}
+        storage:
+          resources:
+            requests:
+              storage: {{ dv.size }}
+          storageClassName: {{ dv.storage_class }}
+    {% endfor %}
+  runStrategy: Halted
+  template:
+    metadata:
+      {% if hostvars[item].annotations is defined or vm_defaults.annotations is defined %}
+      annotations:
+        {{ hostvars[item].annotations | default(vm_defaults.annotations, true) | to_nice_yaml(indent=2) | indent(8) | trim }}
+      {% endif %}
+      labels:
+        kubevirt.io/domain: {{ item }}
+      {% if hostvars[item].labels is defined or vm_defaults.labels is defined %}
+        {{ hostvars[item].labels | default(vm_defaults.labels, true) | to_nice_yaml(indent=2) | indent(8) | trim }}
+      {% endif %}
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          {{ hostvars[item].cpu | default(vm_defaults.cpu, true) | to_nice_yaml(indent=2) | indent(10) | trim }}
+        devices:
+          {% if hostvars[item].autoattach_memballon is defined or vm_defaults.autoattach_memballon is defined %}
+          autoattachMemBalloon: {{ hostvars[item].autoattach_memballon | default(vm_defaults.autoattach_memballon, true) }}
+          {% endif %}
+          {% if hostvars[item].autoattach_serialconsole is defined or vm_defaults.autoattach_serialconsole is defined %}
+          autoattachSerialConsole: {{ hostvars[item].autoattach_serialconsole | default(vm_defaults.autoattach_serialconsole, true) }}
+          {% endif %}
+          blockMultiQueue: {{ hostvars[item].block_multiqueue | default(vm_defaults.block_multiqueue, true) | default(false) }}
+          disks:
+            {% for d in hostvars[item].data_volumes | default(vm_defaults.data_volumes, true) | default([]) %}
+            - dedicatedIOThread: {{ d.dedicated_io_thread | default(false) }}
+              disk:
+                bus: {{ d.bus }}
+              name: {{ d.name }}
+              serial: {{ d.name }}
+            {% endfor %}
+            {% for l in hostvars[item].local_pvc | default(vm_defaults.local_pvc, true) | default([]) %}
+            - dedicatedIOThread: {{ l.dedicated_io_thread | default(false) }}
+              disk:
+                bus: {{ l.bus }}
+              name: {{ l.name }}
+              serial: {{ l.name }}
+            {% endfor %}
+          interfaces:
+            {% for i in hostvars[item].nics | default(vm_defaults.nics, true) %}
+            - bridge: {}
+              model: {{ i.model }}
+              name: {{ i.name }}
+            {% endfor %}
+          networkInterfaceMultiqueue: {{ hostvars[item].network_interface_multiqueue | default(vm_defaults.network_interface_multiqueue, true) | default(false) }}
+          rng: {}
+        features:
+          {{ hostvars[item].domain_features | default(vm_defaults.domain_features, true) | default(o3_domain_features) | to_nice_yaml(indent=2) | indent(10) | trim }}
+        firmware:
+          {{ hostvars[item].firmware | default(vm_defaults.firmware, true) | default(o3_firmware) | to_nice_yaml(indent=2) | indent(10) | trim }}
+        {% if hostvars[item].io_threads is defined or vm_defaults.io_threads is defined %}
+        ioThreads:
+          {{ hostvars[item].io_threads | default(vm_defaults.io_threads, true) | to_nice_yaml(indent=2) | indent(10) | trim }}
+        {% endif %}
+        ioThreadsPolicy: {{ hostvars[item].io_threads_policy | default(vm_defaults.io_threads_policy, true) | default(o3_io_threads_policy) }}
+        memory:
+          {{ hostvars[item].memory | default(vm_defaults.memory, true) | to_nice_yaml(indent=2) | indent(10) | trim }}
+        {% if hostvars[item].resources is defined or vm_defaults.resources is defined %}
+        resources:
+          {{ hostvars[item].resources | default(vm_defaults.resources, true) | to_nice_yaml(indent=2) | indent(10) | trim }}
+        {% endif %}
+      evictionStrategy: {{ hostvars[item].eviction_strategy | default(vm_defaults.eviction_strategy, true) | default(o3_create_vms_eviction_strategy) }}
+      networks:
+        {% for i in hostvars[item].nics | default(vm_defaults.nics, true) %}
+        - multus:
+            networkName: {{ i.network_name }}
+          name: {{ i.name }}
+        {% endfor %}
+      {% if hostvars[item].node_selector is defined or vm_defaults.node_selector is defined %}
+      nodeSelector:
+        {{ hostvars[item].node_selector | default(vm_defaults.node_selector, true) | to_nice_yaml(indent=2) | indent(8) | trim }}
+      {% endif %}
+      {% if hostvars[item].scheduler_name is defined or vm_defaults.scheduler_name is defined %}
+      schedulerName: {{ hostvars[item].scheduler_name | default(vm_defaults.scheduler_name) }}
+      {% endif %}
+      terminationGracePeriodSeconds: 3600
+      volumes:
+        {% for d in hostvars[item].data_volumes | default(vm_defaults.data_volumes, true) | default([]) %}
+        - dataVolume:
+            name: {{ item }}-{{ d.name }}
+          name: {{ d.name }}
+        {% endfor %}
+        {% for l in hostvars[item].local_pvc | default(vm_defaults.local_pvc, true) | default([]) %}
+        - name: {{ l.name }}
+          persistentVolumeClaim:
+            claimName: {{ l.pvc_name }}
+        {% endfor %}
