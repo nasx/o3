@@ -167,6 +167,7 @@ Each host in the inventory file can use the variables listed in the table below.
 |Variable|Type|Required|Description|
 |:---|:---|:---|:---|
 |`annotations`|Object|False|Annotations to be appeneded to the `VirtualMachineInstance`.|
+|`api_node_type`|String|True|Can be one of `master` or `worker`.|
 |`autoattach_memballon`|Boolean|False|Whether to attach the Memory balloon device to the virtual machine. If `autoattach_memballon` is not defined or `false`, the `autoattachMemBalloon` setting is ommited from the `VirtualMachine` spec.|
 |`autoattach_serialconsole`|Boolean|False|Whether to attach the default virtio-serial console or not. If `autoattach_serialconsole` is not defined or `false`, the `autoattachSerialConsole` setting is ommited from the `VirtualMachine` spec.|
 |`block_multiqueue`|Boolean|False|Whether or not to enable virtio multi-queue for block devices. Defaults to `false`.|
@@ -177,12 +178,14 @@ Each host in the inventory file can use the variables listed in the table below.
 |`gateway`|String|True|Gateway IP for primary interface.|
 |`io_threads`|Object|False|Specifies the IOThread options. Required if `io_threads_policy` is set to `supplementalPool`. This object is passed directly to `.spec.template.spec.domain.ioThreads` in the corresponding `VirtualMachine` resource.|
 |`io_threads_policy`|String|False|Controls whether or not disks will share IOThreads. Can be one of `shared`, `auto` or `supplementalPool`. Defaults to `shared`.|
+|`ip`|String|True|IP address of primary interface.|
 |`labels`|Object|False|Labels to be appeneded to the `VirtualMachineInstance`.|
 |`logical_nic_name`|String|True|The name of the NIC used in the corresponding `NMStateConfig` resource.|
 |`memory`|Object|True|This object is passed directly to `.spec.template.spec.domain.memory` in the corresponding `VirtualMachine` resource.|
 |`mtu`|Integer|True|MTU setting for the primary interface.|
 |`network_interface_multiqueue`|Boolean|False|If specified, virtual network interfaces configured with a virtio bus will also enable the vhost multiqueue feature for network devices. Defaults to `false`.|
-|`nics`|List of `Interfaces`|True|A list of `Interfaces` to add to the virtual machine. See the [DataVolumes](#datavolumes-custom-type) custom type.|
+|`nics`|List of `Interfaces`|True|A list of `Interfaces` to add to the virtual machine. See the [Interfaces](#interfaces-custom-type) custom type.|
+|`node_selector`|Object|False|This object is passed directly to `.spec.template.spec.nodeSelector` in the corresponding `VirtualMachine` resource.|
 |`prefix_length`|Integer|True|The subnet mask of the hosts primary IP address in CIDR notation.|
 |`resources`|Object|False|This object is passed directly to `.spec.template.spec.domain.resources` in the corresponding `VirtualMachine` resource.|
 
