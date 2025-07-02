@@ -188,7 +188,6 @@ all:
       # io_threads_policy: supplementalPool
       io_threads_policy: auto
       logical_nic_name: enp1s0
-      mask: 255.255.255.0
       memory:
         guest: 24Gi
         hugepages:
@@ -244,7 +243,6 @@ all:
         - 172.16.10.2
       gateway: 172.16.10.254
       logical_nic_name: enp1s0
-      mask: 255.255.255.0
       memory:
         guest: 64Gi
       mtu: 1500

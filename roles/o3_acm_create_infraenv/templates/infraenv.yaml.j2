@@ -5,7 +5,9 @@ metadata:
   name: {{ infra_env.name }}
   namespace: {{ infra_env.namespace }}
   labels:
+  {% if infra_env.labels is defined %}
     {{ infra_env.labels | to_nice_yaml(indent=2) | indent(4) | trim }}
+  {% endif %}
     networkType: {{ infra_env.network_type }}
 spec:
 {% if infra_env.additional_ntp_sources is defined %}
