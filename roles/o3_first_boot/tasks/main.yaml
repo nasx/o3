@@ -55,9 +55,9 @@
       name: "{{ iso_dv_name }}"
       shareable: true
     kubevirt_disk_add_volume:
+      dataVolume:
+        name: "{{ iso_dv_name }}"
       name: "{{ iso_dv_name }}"
-      persistentVolumeClaim:
-        claimName: "{{ iso_dv_name }}"
   ansible.builtin.include_role:
     name: kubevirt_disk
     tasks_from: add
@@ -75,7 +75,7 @@
         namespace: "{{ vm_namespace }}"
       spec:
         running: null
-        runStrategy: Manual
+        runStrategy: "{{ hostvars[item].run_strategy | default(o3_vm_default_run_strategy) }}"
     validate_certs: "{{ validate_certs }}"
   loop: "{{ groups[provision_group] }}"
 
@@ -91,3 +91,6 @@
     url: "{{ k8s_auth_host }}{{ _uri }}"
     validate_certs: "{{ validate_certs }}"
   loop: "{{ groups[provision_group] }}"
+  when:
+    - hostvars[item].run_strategy is defined
+    - hostvars[item].run_strategy == "Manual"

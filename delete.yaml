@@ -4,6 +4,24 @@
   gather_facts: false
   hosts: localhost
   tasks:
+    - name: Clean up ~/.ssh/known_hosts
+      when:
+        - cleanup_known_hosts | default(false)
+      block:
+        - name: Remove Lines w/ Inventory Hostname in known_hosts
+          ansible.builtin.lineinfile:
+            dest: ~/.ssh/known_hosts
+            regexp: "^.*{{ item }}.{{ acm.base_domain }}.*$"
+            state: absent
+          loop: "{{ groups[provision_group] }}"
+
+        - name: Remove Lines w/ Inventory IP in known_hosts
+          ansible.builtin.lineinfile:
+            dest: ~/.ssh/known_hosts
+            regexp: "^.*{{ lookup('dig', item) + '.' + acm.base_domain }}.*$"
+            state: absent
+          loop: "{{ groups[provision_group] }}"
+
     - name: Reconfigure Cluster VMs
       kubernetes.core.k8s:
         api_key: "{{ platform_token }}"
@@ -15,11 +33,8 @@
             name: "{{ item }}"
             namespace: "{{ vm_namespace }}"
           spec:
-            runStrategy: Halted
+            runStrategy: Manual
             running: null
-            template:
-              spec:
-                terminationGracePeriodSeconds: 0
         validate_certs: "{{ validate_certs }}"
       loop: "{{ groups[provision_group] }}"
 

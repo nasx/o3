@@ -153,7 +153,6 @@ all:
       IMzqSL8BzcvacoY7ahxZvMDF19ct8ddrfekyqmYaULPKWg254NA/kRGmqVmexg7p
       6dIaZenqcGcg
       -----END CERTIFICATE-----
-    ansible_python_interpreter: auto_silent
     cleanup_known_hosts: true
     control_plane_defaults:
       annotations:
@@ -184,6 +183,9 @@ all:
       dns:
         - 172.16.10.2
       gateway: 172.16.10.254
+      # io_threads:
+      #   supplementalPoolThreadCount: 2
+      # io_threads_policy: supplementalPool
       io_threads_policy: auto
       logical_nic_name: enp1s0
       mask: 255.255.255.0
@@ -216,15 +218,11 @@ all:
       ssh_authorized_key: |
         ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCwU45tZ14b81PybKtTCk4Qr6ZIA6QgO0XknAVqBEV5kAPy9aHB/L99FbIpX6iku5/QRNe7Id68gJW2vl3YRX9xQ2ogV6BFlduGM+4dqeaQ+LeYoaKrVzze/c2GmgepiYGbpOtMA9tfi3QDla2HdW1cA+SXZwl0LjSNcodu5xHNSWUnH2m71+jepwVYx8Q6uWMLab8m1jpPFrXi96aAMsssgxVo72cZNoKCetj5ckfCfh2Th5FeRgCJV9QjOAkSxSjEoa5gtaniVTH6YsmVSS4zAz3hVTlwY3HM2OxMKeHrHbmodGkx9MxC6ET1iDN7ZwfQCIlksY4x0ex/+Jv4qw5GnE0FVbvrzDlqyVDSwuvFWbQVmPobwmzBFEIxyPzeo1JcAHpLHPePadUvJBzlRUCbxZSIvlV3KOKq9EQ/nEhvhWBwEcnBYXvE+lylcH+54Js0qz4cHVVvlINZtEeC++5PFort5jvGHCMHkf4ofMXWtMJ/Zt43POkNG7k/RFRQ/THKkWriFFW7onceIEOWJzg4sCC8/ziQiKMgojkA9emecWuQJyKRKpkcnfR5hrmq3wBV+AWalj+Cs/4HyuHJWdchtCGb6CgcxAM0AknOevpRr/OomXW0JW95/JIxXUB/+X2VH/rO8+YTeeXCAiBOmreOpDvjBCmjfPfOeyxmivZh5w== core@openshift
     provision_group: alice
-    sealed_secrets:
-      keypair_name: sealed-secrets-custom-key
-      namespace: sealed-secrets
     template_debug: true
     validate_certs: false
     vm_label_selectors:
       openshift-assisted.uc2.io/cluster: alice
     vm_namespace: alice
-    vm_serviceaccount_name: o3-api
     worker_defaults:
       block_multiqueue: true
       boot_disk_name: rootdisk

@@ -84,7 +84,8 @@
         k8s_auth_api_key: "{{ hub_token }}"
         k8s_auth_host: "{{ hub_api }}"
       ansible.builtin.include_role:
-        name: o3_acm_wait_for_install_ready
+        name: o3_acm_wait_for
+        tasks_from: install-ready
 
     - name: Initiate Cluster Installation
       kubernetes.core.k8s:
@@ -100,3 +101,22 @@
             holdInstallation: false
         state: patched
         validate_certs: "{{ validate_certs }}"
+
+    - name: Wait for Install Completed
+      vars:
+        k8s_auth_api_key: "{{ hub_token }}"
+        k8s_auth_host: "{{ hub_api }}"
+      ansible.builtin.include_role:
+        name: o3_acm_wait_for
+        tasks_from: install-complete
+
+    - name: Subscribe Cluster
+      vars:
+        k8s_auth_api_key: "{{ hub_token }}"
+        k8s_auth_host: "{{ hub_api }}"
+      ansible.builtin.include_role:
+        name: console_dot
+        tasks_from: subscribe
+      when:
+        - openshift_subscription is defined
+        - openshift_subscription.subscribe | default(false)

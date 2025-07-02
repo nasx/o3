@@ -1,0 +1,69 @@
+---
+- name: Query Cluster ID
+  vars:
+    _query: "status.clusterClaims[?name==`id.k8s.io`]"
+  kubernetes.core.k8s_info:
+    api_key: "{{ k8s_auth_api_key }}"
+    api_version: cluster.open-cluster-management.io/v1
+    host: "{{ k8s_auth_host }}"
+    kind: ManagedCluster
+    name: "{{ acm.cluster_name }}"
+    validate_certs: "{{ validate_certs }}"
+  delay: 10
+  retries: 60
+  register: managedcluster_results
+  until:
+    - managedcluster_results.resources is defined
+    - managedcluster_results.resources | count == 1
+    - managedcluster_results.resources[0].status is defined
+    - managedcluster_results.resources[0].status.clusterClaims is defined
+    - (managedcluster_results.resources[0] | json_query(_query) | first).value is defined
+
+- name: Set external_cluster_id
+  vars:
+    _query: "status.clusterClaims[?name==`id.k8s.io`]"
+  ansible.builtin.set_fact:
+    external_cluster_id: "{{ (managedcluster_results.resources[0] | json_query(_query) | first).value }}"
+
+- name: Debug external_cluster_id
+  ansible.builtin.debug:
+    var: external_cluster_id
+
+- name: Generate Access Token
+  ansible.builtin.uri:
+    body:
+      client_id: rhsm-api
+      grant_type: refresh_token
+      refresh_token: "{{ offline_token }}"
+    body_format: form-urlencoded
+    method: POST
+    url: "{{ redhat_sso_url }}"
+  register: access_token
+
+- name: Query Cluster Subscription Information
+  ansible.builtin.uri:
+    headers:
+      Authorization: "Bearer {{ access_token.json.access_token }}"
+    method: GET
+    status_code: 200
+    url: "{{ api_subscriptions_url }}?search=(external_cluster_id='{{ external_cluster_id }}')"
+  register: api_subscription_results
+
+- name: Debug api_subscription_results
+  ansible.builtin.debug:
+    var: api_subscription_results
+
+- name: Subscribe Cluster
+  ansible.builtin.uri:
+    body:
+      cluster_billing_model: "{{ openshift_subscription.cluster_billing_model }}"
+      service_level: "{{ openshift_subscription.service_level }}"
+      support_level: "{{ openshift_subscription.support_level }}"
+      system_units: "{{ openshift_subscription.system_units }}"
+      usage: "{{ openshift_subscription.usage }}"
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ access_token.json.access_token }}"
+    method: PATCH
+    status_code: 200
+    url: "{{ api_subscriptions_url + api_subscription_results.json['items'][0].id }}"

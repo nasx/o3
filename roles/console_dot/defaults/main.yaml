@@ -1,0 +1,5 @@
+---
+api_clusters_url: https://api.openshift.com/api/assisted-install/v2/clusters/
+api_infra_envs_url: https://api.openshift.com/api/assisted-install/v2/infra-envs/
+api_subscriptions_url: https://api.openshift.com/api/accounts_mgmt/v1/subscriptions/
+redhat_sso_url: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token

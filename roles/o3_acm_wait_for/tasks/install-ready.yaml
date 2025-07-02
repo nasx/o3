@@ -1,0 +1,21 @@
+---
+- name: Query AgentClusterInstall Condition 'RequirementsMet'
+  vars:
+    _query: "[?type==`RequirementsMet`].status"
+  kubernetes.core.k8s_info:
+    api_key: "{{ k8s_auth_api_key }}"
+    api_version: extensions.hive.openshift.io/v1beta1
+    host: "{{ k8s_auth_host }}"
+    kind: AgentClusterInstall
+    name: "{{ acm.cluster_name }}"
+    namespace: "{{ infra_env.namespace }}"
+    validate_certs: "{{ validate_certs }}"
+  delay: 10
+  retries: 180
+  register: agentclusterinstall_results
+  until:
+    - agentclusterinstall_results.resources is defined
+    - agentclusterinstall_results.resources | count == 1
+    - agentclusterinstall_results.resources[0].status is defined
+    - agentclusterinstall_results.resources[0].status.conditions is defined
+    - agentclusterinstall_results.resources[0].status.conditions | json_query(_query) | first == "True"
