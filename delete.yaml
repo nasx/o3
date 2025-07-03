@@ -24,8 +24,8 @@
 
     - name: Reconfigure Cluster VMs
       kubernetes.core.k8s:
-        api_key: "{{ platform_token }}"
-        host: "{{ platform_api }}"
+        api_key: "{{ virtualization_token }}"
+        host: "{{ virtualization_api }}"
         resource_definition:
           apiVersion: kubevirt.io/v1
           kind: VirtualMachine
@@ -46,20 +46,20 @@
           gracePeriod: 0
         body_format: json
         headers:
-          Authorization: "Bearer {{ platform_token }}"
+          Authorization: "Bearer {{ virtualization_token }}"
         method: PUT
         status_code:
           - 202
           - 404
           - 409
-        url: "{{ platform_api }}{{ _uri }}"
+        url: "{{ virtualization_api }}{{ _uri }}"
         validate_certs: "{{ validate_certs }}"
       loop: "{{ groups[provision_group] }}"
 
     - name: Delete VirtualMachine Resources
       kubevirt.core.kubevirt_vm:
-        api_key: "{{ platform_token }}"
-        host: "{{ platform_api }}"
+        api_key: "{{ virtualization_token }}"
+        host: "{{ virtualization_api }}"
         name: "{{ item }}"
         namespace: "{{ vm_namespace }}"
         state: absent
@@ -68,9 +68,9 @@
 
     - name: Delete Boot ISO
       kubernetes.core.k8s:
-        api_key: "{{ platform_token }}"
+        api_key: "{{ virtualization_token }}"
         api_version: cdi.kubevirt.io/v1beta1
-        host: "{{ platform_api }}"
+        host: "{{ virtualization_api }}"
         kind: DataVolume
         name: "{{ infra_env.name }}-discovery-iso"
         namespace: "{{ vm_namespace }}"

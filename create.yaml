@@ -6,8 +6,8 @@
   tasks:
     - name: Create Namespace
       kubernetes.core.k8s:
-        api_key: "{{ platform_token }}"
-        host: "{{ platform_api }}"
+        api_key: "{{ virtualization_token }}"
+        host: "{{ virtualization_api }}"
         resource_definition:
           apiVersion: v1
           kind: Namespace
@@ -19,8 +19,8 @@
 
     - name: Create Virtual Machines
       vars:
-        k8s_auth_api_key: "{{ platform_token }}"
-        k8s_auth_host: "{{ platform_api }}"
+        k8s_auth_api_key: "{{ virtualization_token }}"
+        k8s_auth_host: "{{ virtualization_api }}"
       ansible.builtin.include_role:
         name: o3_create_vms
 
@@ -35,8 +35,8 @@
 
     - name: Attach Discovery ISO and Boot Virtual Machines
       vars:
-        k8s_auth_api_key: "{{ platform_token }}"
-        k8s_auth_host: "{{ platform_api }}"
+        k8s_auth_api_key: "{{ virtualization_token }}"
+        k8s_auth_host: "{{ virtualization_api }}"
       ansible.builtin.include_role:
         name: o3_first_boot
 
