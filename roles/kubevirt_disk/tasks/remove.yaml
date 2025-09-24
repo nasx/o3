@@ -2,6 +2,7 @@
 - name: Assert Variables are Defined
   ansible.builtin.assert:
     that:
+      - kubevirt_disk_name is defined
       - kubevirt_disk_vm_name is defined
       - kubevirt_disk_vm_namespace is defined
 
