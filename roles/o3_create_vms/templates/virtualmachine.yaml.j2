@@ -3,6 +3,11 @@
 {% else -%}
   {% set vm_defaults = worker_defaults -%}
 {% endif -%}
+{% if hostvars[item].affinity is defined %}
+  {% set vm_affinity = hostvars[item].affinity %}
+{% elif vm_defaults.affinity is defined %}
+  {% set vm_affinity = vm_defaults.affinity %}
+{% endif %}
 ---
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
@@ -42,6 +47,10 @@ spec:
         {{ hostvars[item].labels | default(vm_defaults.labels, true) | to_nice_yaml(indent=2) | indent(8) | trim }}
       {% endif %}
     spec:
+      {% if vm_affinity is defined %}
+      affinity:
+        {{ vm_affinity | to_nice_yaml(indent=2) | indent(8) | trim }}
+      {% endif %}
       architecture: amd64
       domain:
         cpu:
