@@ -1,4 +1,16 @@
 ---
+- name: Create InfraEnv Namespace
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    resource_definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ infra_env.namespace }}"
+      spec: {}
+    validate_certs: "{{ validate_certs }}"
+
 - name: Create InfraEnv Pull Secret
   kubernetes.core.k8s:
     api_key: "{{ k8s_auth_api_key }}"
@@ -74,21 +86,6 @@
     - infraenv_results.resources[0].status.conditions is defined
     - infraenv_results.resources[0].status.conditions | count >= 1
     - infraenv_results.resources[0] | json_query(_query) | first == "True"
-
-- name: Create ConfigMap for CA Certificate
-  kubernetes.core.k8s:
-    api_key: "{{ k8s_auth_api_key }}"
-    host: "{{ k8s_auth_host }}"
-    resource_definition:
-      apiVersion: v1
-      data:
-        ca.crt: |-
-          {{ additional_trust_bundle | trim }}
-      kind: ConfigMap
-      metadata:
-        name: iso-http-ca
-        namespace: "{{ infra_env.namespace }}"
-    validate_certs: "{{ validate_certs }}"
 
 - name: Set ISO Facts
   ansible.builtin.set_fact:

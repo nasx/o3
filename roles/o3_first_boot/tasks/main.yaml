@@ -1,4 +1,19 @@
 ---
+- name: Create ConfigMap for CA Certificate
+  kubernetes.core.k8s:
+    api_key: "{{ k8s_auth_api_key }}"
+    host: "{{ k8s_auth_host }}"
+    resource_definition:
+      apiVersion: v1
+      data:
+        ca.crt: |-
+          {{ additional_trust_bundle | trim }}
+      kind: ConfigMap
+      metadata:
+        name: iso-http-ca
+        namespace: "{{ infra_env.namespace }}"
+    validate_certs: "{{ validate_certs }}"
+
 - name: Create Discovery ISO DataVolume from HTTP Source
   kubernetes.core.k8s:
     api_key: "{{ k8s_auth_api_key }}"

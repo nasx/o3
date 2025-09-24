@@ -37,6 +37,7 @@
     host: "{{ k8s_auth_host }}"
     kind: VirtualMachine
     label_selectors: "{{ _label_selector_key_list | zip(_label_selector_value_list) | map('join', ' = ') }}"
+    namespace: "{{ vm_namespace }}"
     validate_certs: "{{ validate_certs }}"
   register: vm_results
 
