@@ -166,6 +166,7 @@ Each host in the inventory file can use the variables listed in the table below.
 
 |Variable|Type|Required|Description|
 |:---|:---|:---|:---|
+|`affinity`|Object|False|This object is passed directly to `.spec.template.spec.affinity` in the corresponding `VirtualMachine` resource.|
 |`annotations`|Object|False|Annotations to be appeneded to the `VirtualMachineInstance`.|
 |`api_node_type`|String|True|Can be one of `master` or `worker`.|
 |`autoattach_memballon`|Boolean|False|Whether to attach the Memory balloon device to the virtual machine. If `autoattach_memballon` is not defined or `false`, the `autoattachMemBalloon` setting is ommited from the `VirtualMachine` spec.|
