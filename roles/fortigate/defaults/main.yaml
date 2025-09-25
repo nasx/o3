@@ -1,0 +1,37 @@
+---
+policy_action: accept
+policy_anti_replay: enable
+policy_auto_asic_offload: enable
+policy_firewall_session_dirty: check-all
+policy_fixedport: disable
+policy_inbound: disable
+policy_inspection_mode: flow
+policy_ippool: disable
+policy_logtraffic: utm
+policy_logtraffic_start: disable
+policy_match_vip: enable
+policy_match_vip_only: disable
+policy_nat: enable
+policy_nat46: disable
+policy_nat64: disable
+policy_natinbound: disable
+policy_natip: 0.0.0.0 0.0.0.0
+policy_natoutbound: disable
+policy_np_acceleration: enable
+policy_outbound: enable
+# Setting policyid to 0 will assign the latest available number for the object
+policy_policyid: 0
+policy_port_preserve: enable
+policy_schedule: always
+policy_status: enable
+realserver_healthcheck: vip
+realserver_holddown_interval: 300
+realserver_max_connections: 0
+realserver_status: active
+realserver_translate_host: enable
+realserver_type: ip
+realserver_weight: 1
+vip_extintf: any
+vip_ldb_method: round-robin
+vip_server_type: tcp
+vip_type: server-load-balance
