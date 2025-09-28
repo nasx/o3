@@ -1,0 +1,23 @@
+---
+- name: Validate Required Variables
+  ansible.builtin.assert:
+    that:
+      - acm is defined
+      - acm.cluster_name is defined
+      - fortigate_firewall_policies is defined
+      - fortigate_virtual_servers is defined
+      - provision_group is defined
+
+- name: Create Virtual Servers
+  ansible.builtin.include_tasks:
+    file: virtual-server.yaml
+  loop: "{{ fortigate_virtual_servers }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Create Firewall Policies
+  ansible.builtin.include_tasks:
+    file: policy.yaml
+  loop: "{{ fortigate_firewall_policies }}"
+  loop_control:
+    label: "{{ item.name }}"

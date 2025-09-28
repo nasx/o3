@@ -1,0 +1,56 @@
+---
+- name: Get List of Virtual Servers and Reset _dstaddr
+  ansible.builtin.set_fact:
+    _dstaddr: []
+    _virtual_servers: "{{ fortigate_virtual_servers | json_query('[].name') }}"
+
+- name: Debug _virtual_servers
+  ansible.builtin.debug:
+    var: _virtual_servers
+
+- name: Build _dstaddr List
+  ansible.builtin.set_fact:
+    _dstaddr: "{{ _dstaddr | default([]) + [{'name': virtual_server_name}] }}"
+  loop: "{{ _virtual_servers }}"
+  loop_control:
+    loop_var: virtual_server_name
+
+- name: Debug _dstaddr
+  ansible.builtin.debug:
+    var: _dstaddr
+
+- name: "Create Firewall Policy {{ item.name }}"
+  fortinet.fortios.fortios_firewall_policy:
+    firewall_policy:
+      action: "{{ item.action | default(fortigate_firewall_policy_defaults.action) | default(policy_action) }}"
+      anti_replay: "{{ item.anti_replay | default(fortigate_firewall_policy_defaults.anti_replay) | default(policy_anti_replay) }}"
+      auto_asic_offload: "{{ item.auto_asic_offload | default(fortigate_firewall_policy_defaults.anti_replay) | default(policy_auto_asic_offload) }}"
+      comments: "Created by Ansible on {{ now(utc=true, fmt='%Y-%m-%d %H:%M:%S UTC') }} for cluster {{ acm.cluster_name }}"
+      dstaddr: "{{ _dstaddr }}"
+      dstintf: "{{ item.dstintf | default(fortigate_firewall_policy_defaults.dstintf) }}"
+      firewall_session_dirty: "{{ item.firewall_session_dirty | default(fortigate_firewall_policy_defaults.firewall_session_dirty) | default(policy_firewall_session_dirty) }}"
+      fixedport: "{{ item.fixedport | default(fortigate_firewall_policy_defaults.fixedport) | default(policy_fixedport) }}"
+      groups: "{{ item.groups | default(fortigate_firewall_policy_defaults.groups) | default(omit) }}"
+      inbound: "{{ item.inbound | default(fortigate_firewall_policy_defaults.inbound) | default(policy_inbound) }}"
+      inspection_mode: "{{ item.inspection_mode | default(fortigate_firewall_policy_defaults.inspection_mode) | default(policy_inspection_mode) }}"
+      ippool: "{{ item.ippool | default(fortigate_firewall_policy_defaults.ippool) | default(policy_ippool) }}"
+      logtraffic: "{{ item.logtraffic | default(fortigate_firewall_policy_defaults.logtraffic) | default(policy_logtraffic) }}"
+      match_vip: "{{ item.match_vip | default(fortigate_firewall_policy_defaults.match_vip) | default(policy_match_vip) }}"
+      match_vip_only: "{{ item.match_vip_only | default(fortigate_firewall_policy_defaults.match_vip_only) | default(policy_match_vip_only) }}"
+      name: "{{ item.name }}"
+      nat: "{{ item.nat | default(fortigate_firewall_policy_defaults.nat) | default(policy_nat) }}"
+      nat46: "{{ item.nat46 | default(fortigate_firewall_policy_defaults.nat46) | default(policy_nat46) }}"
+      nat64: "{{ item.nat64 | default(fortigate_firewall_policy_defaults.nat64) | default(policy_nat64) }}"
+      natinbound: "{{ item.natinbound | default(fortigate_firewall_policy_defaults.natinbound) | default(policy_natinbound) }}"
+      natip: "{{ item.natip | default(fortigate_firewall_policy_defaults.natip) | default(policy_natip) }}"
+      natoutbound: "{{ item.natoutbound | default(fortigate_firewall_policy_defaults.natoutbound) | default(policy_natoutbound) }}"
+      np_acceleration: "{{ item.np_acceleration | default(fortigate_firewall_policy_defaults.np_acceleration) | default(policy_np_acceleration) }}"
+      outbound: "{{ item.outbound | default(fortigate_firewall_policy_defaults.outbound) | default(policy_outbound) }}"
+      policyid: "{{ item.policyid | default(fortigate_firewall_policy_defaults.policyid) | default(policy_policyid) }}"
+      port_preserve: "{{ item.port_preserve | default(fortigate_firewall_policy_defaults.port_preserve) | default(policy_port_preserve) }}"
+      schedule: "{{ item.schedule | default(fortigate_firewall_policy_defaults.schedule) | default(policy_schedule) }}"
+      service: "{{ item.service | default(fortigate_firewall_policy_defaults.service) }}"
+      srcaddr: "{{ item.srcaddr | default(fortigate_firewall_policy_defaults.srcaddr) }}"
+      srcintf: "{{ item.srcintf | default(fortigate_firewall_policy_defaults.srcintf) }}"
+      status: "{{ item.status | default(policy_status) }}"
+    state: present

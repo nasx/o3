@@ -1,0 +1,64 @@
+---
+- name: Get Backend IP List and Reset _realservers
+  ansible.builtin.set_fact:
+    _backend_ips: >-
+      {{
+        groups[provision_group] |
+          map('extract', hostvars) |
+          selectattr('api_node_type', 'equalto', item.api_node_type) |
+          map(attribute='ip') | list
+      }}
+    _realservers: []
+
+- name: Debug _backend_ips
+  ansible.builtin.debug:
+    msg: "{{ _backend_ips }}"
+
+- name: Build _realservers List
+  ansible.builtin.set_fact:
+    _realservers: >-
+      {{
+        _realservers | default([]) +
+        [
+          {
+            'address': item.address | default(''),
+            'client_ip': item.client_ip | default(''),
+            'healthcheck': item.healthcheck | default(realserver_healthcheck),
+            'holddown_interval': item.holddown_interval | default(realserver_holddown_interval),
+            'http_host': item.http_host | default(''),
+            'id': i + 1,
+            'ip': ip,
+            'max_connections': item.max_connections | default(realserver_max_connections),
+            'monitor': item.monitor,
+            'port': item.port,
+            'status': item.status | default(realserver_status),
+            'translate_host': item.translate_host | default(realserver_translate_host),
+            'type': item.type | default(realserver_type),
+            'weight': item.weight | default(realserver_weight)
+          }
+        ]
+      }}
+  loop: "{{ _backend_ips }}"
+  loop_control:
+    index_var: i
+    label: "Adding member id={{ i }}, ip:port={{ ip }}:{{ item.port }}"
+    loop_var: ip
+
+- name: Debug _realservers
+  ansible.builtin.debug:
+    var: _realservers
+
+- name: "Create Virtual Server {{ item.name }}"
+  fortinet.fortios.fortios_firewall_vip:
+    firewall_vip:
+      comment: "Created by Ansible on {{ now(utc=true, fmt='%Y-%m-%d %H:%M:%S UTC') }} for cluster {{ acm.cluster_name }}"
+      extintf: "{{ item.extintf | default(vip_extintf) }}"
+      extip: "{{ item.extip }}"
+      extport: "{{ item.extport | default(item.port) }}"
+      ldb_method: "{{ item.ldb_method | default(vip_ldb_method) }}"
+      monitor: "{{ item.monitor }}"
+      name: "{{ item.name }}"
+      realservers: "{{ _realservers }}"
+      server_type: "{{ item.server_type | default(vip_server_type) }}"
+      type: "{{ item.type | default(vip_type) }}"
+    state: present
